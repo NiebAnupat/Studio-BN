@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model customer {
+  CUS_ID   Int    @id @default(autoincrement())
+  CUS_NAME String @db.VarChar(100)
+  CUS_TEL  String @db.Char(10)
+  rent     rent[]
+}
+
+model rent {
+  RN_ID                Int          @id @default(autoincrement())
+  RN_DATE              String       @db.VarChar(10)
+  RN_START_TIME        DateTime     @db.Time(0)
+  RN_END_TIME          DateTime     @db.Time(0)
+  CUS_ID               Int
+  R_ID                 Int
+  RN_PRICE             Float
+  RN_PAYMENT           Bytes
+  customer             customer     @relation(fields: [CUS_ID], references: [CUS_ID], onUpdate: Restrict, map: "rent_ibfk_1")
+  room_rent_R_IDToroom room         @relation("rent_R_IDToroom", fields: [R_ID], references: [R_ID], onUpdate: Restrict, map: "rent_ibfk_2")
+  using_room           using_room[]
+
+  @@index([CUS_ID], map: "CUS_ID")
+  @@index([R_ID], map: "R_ID")
+}
+
+model room {
+  R_ID                 Int          @id @default(autoincrement())
+  R_PRICE              Float
+  R_TYPE               String       @db.VarChar(10)
+  rent_rent_R_IDToroom rent[]       @relation("rent_R_IDToroom")
+  using_room           using_room[]
+}
+
+model admin {
+  AD_ID       String @id @db.VarChar(50)
+  AD_PASSWORD String @db.VarChar(20)
+}
+
+model using_room {
+  USE_ID Int  @id @default(autoincrement())
+  RN_ID  Int
+  R_ID   Int
+  rent   rent @relation(fields: [RN_ID], references: [RN_ID], onUpdate: Restrict, map: "using_room_ibfk_1")
+  room   room @relation(fields: [R_ID], references: [R_ID], onUpdate: Restrict, map: "using_room_ibfk_2")
+
+  @@index([RN_ID], map: "RN_ID")
+  @@index([R_ID], map: "R_ID")
+}
