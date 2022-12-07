@@ -6,7 +6,8 @@ const {
     getRents,
     getRentById,
     createRent,
-    rejectRent
+    rejectRent,
+    checkRoom
 } = require( '../controllers/Rent' );
 
 // GET API
@@ -15,6 +16,7 @@ router.get( '/by/:id', getRentById );
 
 // POST API
 router.post( '/', upload.single( 'img' ), createRent );
+router.post( '/check-room', checkRoom );
 
 // DELETE API
 router.delete( '/reject/:id', rejectRent );

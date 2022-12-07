@@ -66,6 +66,49 @@ const _calculatePrice = async ( RN_START_TIME, RN_END_TIME, room ) => {
     return price;
 }
 
+const checkRoom = async ( req, res ) => {
+
+    const { RN_DATE, RN_START_TIME, RN_END_TIME, R_TYPE } = req.body;
+
+    var type = '';
+
+    switch ( R_TYPE ) {
+        case 'ห้องเล็ก':
+            type = 'sm';
+            break;
+        case 'ห้องกลาง':
+            type = 'md';
+            break;
+        case 'ห้องใหญ่':
+            type = 'lg';
+            break;
+    }
+
+    // string hour to date
+    const momentStart = moment( RN_START_TIME, "HH:mm" );
+    const momentEnd = moment( RN_END_TIME, "HH:mm" );
+
+    // check room is available with using_room join room join rent as raw query
+    const available = await prisma.$queryRaw`SELECT * FROM using_room
+            JOIN room ON using_room.R_ID = room.R_ID
+            JOIN rent ON using_room.RN_ID = rent.RN_ID
+            WHERE room.R_TYPE = ${ type } AND rent.RN_DATE = ${ RN_DATE } AND
+            ((rent.RN_START_TIME <= ${ momentStart } AND rent.RN_END_TIME > ${ momentStart }) OR
+            (rent.RN_START_TIME < ${ momentEnd } AND rent.RN_END_TIME >= ${ momentEnd }) OR
+            (rent.RN_START_TIME >= ${ momentStart } AND rent.RN_END_TIME <= ${ momentEnd }))`;
+
+    if ( available.length > 0 ) {
+        return res.status( 200 ).json( {
+            isAvailable : false
+        } );
+    } else {
+        return res.status( 200 ).json( {
+            isAvailable : true
+        } );
+    }
+
+}
+
 const createRent = async ( req, res ) => {
     const { RN_DATE, RN_START_TIME, RN_END_TIME, CUS_NAME, CUS_TEL, R_TYPE, TotalPrice } = req.body;
     try {
@@ -97,17 +140,17 @@ const createRent = async ( req, res ) => {
         const end = momentEnd.toDate();
 
         // check room is available with using_room join room join rent as raw query
-        const available = await prisma.$queryRaw`SELECT * FROM using_room
-            JOIN room ON using_room.R_ID = room.R_ID
-            JOIN rent ON using_room.RN_ID = rent.RN_ID
-            WHERE room.R_TYPE = ${ type } AND rent.RN_DATE = ${ RN_DATE } AND
-            ((rent.RN_START_TIME <= ${ momentStart } AND rent.RN_END_TIME > ${ momentStart }) OR
-            (rent.RN_START_TIME < ${ momentEnd } AND rent.RN_END_TIME >= ${ momentEnd }) OR
-            (rent.RN_START_TIME >= ${ momentStart } AND rent.RN_END_TIME <= ${ momentEnd }))`;
-
-        if ( available.length > 0 ) {
-            return res.status( 200 ).json( null );
-        }
+        // const available = await prisma.$queryRaw`SELECT * FROM using_room
+        //     JOIN room ON using_room.R_ID = room.R_ID
+        //     JOIN rent ON using_room.RN_ID = rent.RN_ID
+        //     WHERE room.R_TYPE = ${ type } AND rent.RN_DATE = ${ RN_DATE } AND
+        //     ((rent.RN_START_TIME <= ${ momentStart } AND rent.RN_END_TIME > ${ momentStart }) OR
+        //     (rent.RN_START_TIME < ${ momentEnd } AND rent.RN_END_TIME >= ${ momentEnd }) OR
+        //     (rent.RN_START_TIME >= ${ momentStart } AND rent.RN_END_TIME <= ${ momentEnd }))`;
+        //
+        // if ( available.length > 0 ) {
+        //     return res.status( 200 ).json( null );
+        // }
 
         const room = await prisma.room.findFirst( {
             where : {
@@ -201,5 +244,6 @@ module.exports = {
     getRents,
     getRentById,
     createRent,
-    rejectRent
+    rejectRent,
+    checkRoom
 }
